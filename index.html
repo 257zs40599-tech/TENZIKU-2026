@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>展軸祭2026 ポータル</title>
 
 <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
@@ -13,98 +13,112 @@
 :root {
   --blue: #4267ad; --red: #bb4343; --light: #f1efef; --gray: #747474; --dark: #242424;
   --primary: var(--blue); --accent: var(--red); --bg: var(--light);
-  --bg-card: #FFFFFF; --text: var(--dark); --radius: 12px;
+  --radius: 12px; --shadow: rgba(0,0,0,0.08);
 }
 @import url('https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;700;900&display=swap');
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body { font-family: 'Zen Old Mincho', serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+body { font-family: 'Zen Old Mincho', serif; background: var(--bg); color: var(--dark); overflow: hidden; height: 100vh; }
 
-/* ページ制御 */
-.page { display: none; padding: 24px 16px 100px; max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; z-index: 10; background: var(--bg); }
+/* ページ構造 */
+.page { 
+  display: none; position: absolute; inset: 0; padding: 20px 16px 100px; 
+  overflow-y: auto; background: var(--bg); z-index: 10; 
+}
 .page.active { display: block; }
 
-/* カメラ画面の制御（ここが重要） */
-.fullscreen-camera { position: fixed; inset: 0; background: #000; z-index: 500; display: none; }
-.fullscreen-camera.active { display: block; }
+/* 🎥 カメラ・AR専用エリア (背景にならないよう独立) */
+#camera-overlay {
+  display: none; position: fixed; inset: 0; background: #000; z-index: 5;
+}
+#camera-overlay.active { display: block; }
 
-/* AR.jsが勝手に作るvideoタグを隠す設定 */
-body > video, video.a-canvas { display: none !important; }
-.active > video, .active video.a-canvas, #qr-video { display: block !important; }
+/* ARシーンの強制リサイズ */
+.a-canvas { width: 100% !important; height: 100% !important; position: absolute; top:0; left:0; }
+video { width: 100% !important; height: 100% !important; object-fit: cover; }
 
-/* デザインパーツ */
+/* UIパーツ */
 .header { text-align: center; padding: 20px 0; }
-.header h1 { font-size: 26px; font-weight: 900; letter-spacing: 2px; }
 .header h1 span { color: var(--accent); }
-.card { background: var(--bg-card); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); margin-bottom: 16px; }
+.card { background: white; border-radius: var(--radius); padding: 18px; box-shadow: 0 2px 10px var(--shadow); margin-bottom: 16px; }
 
-/* ナビ・SNS */
-.home-nav-display { display: flex; align-items: center; gap: 15px; background: #f9f9f9; padding: 12px; border-radius: 10px; margin-top: 10px; }
-#home-arrow { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 30px solid var(--accent); transition: transform 0.2s; transform-origin: 50% 80%; }
-.sns-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
-.sns-item { text-decoration: none; background: #f5f5f5; border-radius: 8px; padding: 10px; text-align: center; font-size: 9px; font-weight: bold; color: var(--dark); }
+/* HOME：ナビ */
+.nav-mini { display: flex; align-items: center; gap: 15px; background: #f8f9fa; padding: 12px; border-radius: 10px; margin-top: 10px; }
+#arrow-icon { width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 30px solid var(--accent); transition: transform 0.2s ease; transform-origin: 50% 80%; }
+
+/* SNS & Links */
+.link-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.link-btn { text-decoration: none; background: #f0F2F5; padding: 10px 5px; border-radius: 8px; text-align: center; font-size: 9px; font-weight: bold; color: var(--dark); }
 
 /* ボトムナビ */
-.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; padding: 8px 0 env(safe-area-inset-bottom); box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; }
-.nav-btn { flex: 1; border: none; background: none; font-size: 9px; font-weight: 700; color: var(--gray); display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-.nav-btn.active { color: var(--primary); }
+.bottom-nav { 
+  position: fixed; bottom: 0; left: 0; right: 0; height: 75px;
+  background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+  display: flex; border-top: 1px solid rgba(0,0,0,0.05); z-index: 1000; padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item { flex: 1; border: none; background: none; font-size: 9px; font-weight: bold; color: var(--gray); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.nav-item.active { color: var(--primary); }
 
-.btn { display: block; width: 100%; padding: 15px; border-radius: 8px; border: none; background: var(--primary); color: white; font-weight: 700; text-align: center; cursor: pointer; }
-#nick-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.btn-main { background: var(--primary); color: white; border: none; padding: 16px; width: 100%; border-radius: 8px; font-weight: bold; font-family: inherit; cursor: pointer; }
+
+/* ニックネーム登録 */
+#nick-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
 </style>
 </head>
 <body>
 
-<div id="nick-overlay" style="display:none;">
-  <div style="background:white; padding:30px; border-radius:12px; width:100%; max-width:320px; text-align:center;">
-    <h2 style="color:var(--primary);">ニックネーム登録</h2>
-    <input type="text" id="nick-input" placeholder="例：ゼンタロウ" maxlength="10">
-    <button class="btn" style="margin-top:15px;" onclick="saveNickname()">登録して開始</button>
+<div id="nick-modal" style="display:none;">
+  <div class="card" style="width:100%; max-width:320px; text-align:center;">
+    <h2 style="color:var(--primary); margin-bottom:10px;">ニックネーム登録</h2>
+    <input type="text" id="nick-input" placeholder="例：ゼンタロウ" style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; margin-bottom:15px; font-size:16px;">
+    <button class="btn-main" onclick="saveNickname()">登録して開始</button>
   </div>
 </div>
 
 <div id="page-home" class="page active">
   <div class="header"><h1>展軸祭 <span>ポータル</span></h1></div>
   <div class="card">
-    <p style="font-size:12px;">Welcome, <strong id="display-nick">...</strong></p>
-    <div id="clock" style="font-size:10px; color:var(--red); margin: 5px 0;"></div>
-    <div class="home-nav-display">
-      <div id="home-arrow"></div>
+    <p style="font-size:12px; color:var(--gray);">Welcome, <strong id="display-nick" style="color:var(--dark);">...</strong></p>
+    <div class="nav-mini">
+      <div id="arrow-icon"></div>
       <div>
         <p style="font-size:10px; color:var(--gray);">Goal: ZEN lounge</p>
-        <div id="home-dist" style="font-size:16px; font-weight:900; color:var(--primary);">計算中...</div>
+        <div id="home-dist" style="font-size:18px; font-weight:900; color:var(--primary);">距離計算中...</div>
       </div>
     </div>
   </div>
+  
   <div class="card">
-    <div class="sns-grid">
-      <a href="https://zen.ac.jp/university_festival/index.html" target="_blank" class="sns-item">🌐 特設サイト</a>
-      <a href="https://www.instagram.com/zenfes_official?igsh=YWFzN3Y3bmY3bHVm" target="_blank" class="sns-item">📸 Instagram</a>
-      <a href="https://x.com/zenfes_official?s=21&t=NVewtsS9XNKgDR4p9GzW1w" target="_blank" class="sns-item">𝕏 Twitter</a>
+    <p style="font-size:11px; font-weight:bold; margin-bottom:8px;">LINKS & SNS</p>
+    <div class="link-grid">
+      <a href="https://zen.ac.jp/university_festival/index.html" target="_blank" class="link-btn">🌐 特設サイト</a>
+      <a href="https://www.instagram.com/zenfes_official?igsh=YWFzN3Y3bmY3bHVm" target="_blank" class="link-btn">📸 Instagram</a>
+      <a href="https://x.com/zenfes_official?s=21&t=NVewtsS9XNKgDR4p9GzW1w" target="_blank" class="link-btn">𝕏 Twitter</a>
     </div>
   </div>
-  <button class="btn" onclick="navigate('scan')">QRスキャン開始</button>
+  <button class="btn-main" style="background:linear-gradient(90deg, var(--blue), var(--red));" onclick="navigate('scan')">QRスキャンを開始</button>
 </div>
 
-<div id="page-scan" class="fullscreen-camera">
-  <div style="position:absolute; top:20px; width:100%; text-align:center; color:white; z-index:600;">QRをスキャン</div>
-  <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:200px; height:200px; border:2px solid var(--accent); border-radius:20px; box-shadow:0 0 0 2000px rgba(0,0,0,0.5); z-index:550;"></div>
-  <video id="qr-video" style="width:100%; height:100%; object-fit:cover;"></video>
-  <canvas id="qr-canvas" style="display:none;"></canvas>
-</div>
-
-<div id="page-ar" class="fullscreen-camera">
-  <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+<div id="camera-overlay">
+  <div id="qr-ui" style="display:none;">
+    <div style="position:absolute; top:20%; width:100%; text-align:center; color:white; z-index:20; font-weight:bold;">ブースのQRをスキャン</div>
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:220px; height:220px; border:2px solid var(--accent); border-radius:20px; box-shadow:0 0 0 2000px rgba(0,0,0,0.6); z-index:15;"></div>
+  </div>
+  
+  <a-scene id="ar-scene" embedded arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" vr-mode-ui="enabled: false">
     <a-marker type="pattern" url="tenjiku_logo.patt" id="ar-marker">
         <a-image src="mascot.png" position="0 0.5 0" rotation="-90 0 0" width="2" height="2"></a-image>
     </a-marker>
     <a-entity camera></a-entity>
   </a-scene>
+
+  <video id="qr-video" playsinline style="display:none; position:absolute; inset:0; z-index:11;"></video>
+  <canvas id="qr-canvas" style="display:none;"></canvas>
 </div>
 
 <div id="page-stamps" class="page">
   <div class="header"><h1>スタンプ<span>帳</span></h1></div>
-  <div id="stamp-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;"></div>
+  <div id="stamp-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;"></div>
 </div>
 
 <div id="page-tickets" class="page">
@@ -113,81 +127,85 @@ body > video, video.a-canvas { display: none !important; }
 </div>
 
 <div class="bottom-nav">
-  <button class="nav-btn active" id="nav-home" onclick="navigate('home')">🏠 HOME</button>
-  <button class="nav-btn" id="nav-scan" onclick="navigate('scan')">🔍 スキャン</button>
-  <button class="nav-btn" id="nav-stamps" onclick="navigate('stamps')">📒 スタンプ</button>
-  <button class="nav-btn" id="nav-tickets" onclick="navigate('tickets')">🏆 抽選券</button>
-  <button class="nav-btn" id="nav-ar" onclick="navigate('ar')">📷 AR</button>
+  <button class="nav-item active" id="nav-home" onclick="navigate('home')"><span>🏠</span>HOME</button>
+  <button class="nav-item" id="nav-scan" onclick="navigate('scan')"><span>🔍</span>スキャン</button>
+  <button class="nav-item" id="nav-stamps" onclick="navigate('stamps')"><span>📒</span>スタンプ</button>
+  <button class="nav-item" id="nav-tickets" onclick="navigate('tickets')"><span>🏆</span>抽選券</button>
+  <button class="nav-item" id="nav-ar" onclick="navigate('ar')"><span>📷</span>AR撮影</button>
 </div>
 
 <script>
 const CONFIG = {
-  storageKey: "tenziku_2026_fixed_v1",
+  key: "tenziku_2026_vFinal_fixed",
   dest: { lat: 32.8062, lng: 130.7058 },
   booths: [
-    { id: "b1", name: "ステージ", icon: "🎤" }, { id: "b2", name: "ゲーム", icon: "🎮" },
-    { id: "b3", name: "ARスポット", icon: "📷" }, { id: "b4", name: "展示", icon: "🎨" },
+    { id: "b1", name: "メインステージ", icon: "🎤" }, { id: "b2", name: "ゲームエリア", icon: "🎮" },
+    { id: "b3", name: "ARスポット", icon: "📷" }, { id: "b4", name: "展示A", icon: "🎨" },
     { id: "b5", name: "模擬店", icon: "🍜" }, { id: "b6", name: "本部", icon: "🏛️" }
   ]
 };
 
-let data = JSON.parse(localStorage.getItem(CONFIG.storageKey)) || { nickname: "", stamps: {}, tickets: {} };
+let state = JSON.parse(localStorage.getItem(CONFIG.key)) || { nickname: "", stamps: {}, tickets: {} };
 
 window.onload = () => {
-  if(!data.nickname) document.getElementById('nick-overlay').style.display = 'flex';
-  else document.getElementById('display-nick').innerText = data.nickname;
-  startGlobalNav();
-  setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
+  if(!state.nickname) document.getElementById('nick-modal').style.display = 'flex';
+  else document.getElementById('display-nick').innerText = state.nickname;
+  initGPS();
 };
 
 function saveNickname() {
-  const val = document.getElementById('nick-input').value.trim();
-  if(!val) return;
-  data.nickname = val;
-  localStorage.setItem(CONFIG.storageKey, JSON.stringify(data));
-  document.getElementById('nick-overlay').style.display = 'none';
-  document.getElementById('display-nick').innerText = data.nickname;
+  const n = document.getElementById('nick-input').value.trim();
+  if(!n) return;
+  state.nickname = n;
+  localStorage.setItem(CONFIG.key, JSON.stringify(state));
+  location.reload();
 }
 
 function navigate(pageId) {
-  // すべてのページとカメラを非表示
-  document.querySelectorAll('.page, .fullscreen-camera').forEach(p => {
-      p.classList.remove('active');
-  });
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  
-  // 指定ページを表示
-  const target = document.getElementById('page-' + pageId);
-  target.classList.add('active');
+  // 全リセット
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-' + pageId).classList.add('active');
+  
+  const camOverlay = document.getElementById('camera-overlay');
+  const arScene = document.getElementById('ar-scene');
+  const qrVideo = document.getElementById('qr-video');
+  const qrUI = document.getElementById('qr-ui');
 
-  // ARシーンの制御
-  const arScene = document.querySelector('a-scene');
-  if(pageId === 'ar') {
-    arScene.style.display = "block";
-    arScene.play();
+  stopQR();
+  camOverlay.classList.remove('active');
+  arScene.style.pointerEvents = "none";
+  arScene.style.opacity = "0";
+
+  if(pageId === 'scan') {
+    camOverlay.classList.add('active');
+    qrUI.style.display = "block";
+    qrVideo.style.display = "block";
+    startQR();
+  } else if(pageId === 'ar') {
+    camOverlay.classList.add('active');
+    qrUI.style.display = "none";
+    qrVideo.style.display = "none";
+    arScene.style.pointerEvents = "auto";
+    arScene.style.opacity = "1";
+    // ARの強制再起動（真っ黒回避）
+    if(arScene.hasLoaded) { arScene.play(); }
   } else {
-    if(arScene) {
-      arScene.pause();
-      arScene.style.display = "none";
-    }
+    document.getElementById('page-' + pageId).classList.add('active');
+    if(pageId === 'stamps') renderStamps();
+    if(pageId === 'tickets') renderTickets();
   }
-
-  if(pageId === 'scan') startQR(); else stopQR();
-  if(pageId === 'stamps') renderStamps();
-  if(pageId === 'tickets') renderTickets();
 }
 
 // GPSナビ
-function startGlobalNav() {
-  if(navigator.geolocation) {
-    navigator.geolocation.watchPosition(pos => {
-      const d = getDist(pos.coords.latitude, pos.coords.longitude, CONFIG.dest.lat, CONFIG.dest.lng);
-      const b = getBear(pos.coords.latitude, pos.coords.longitude, CONFIG.dest.lat, CONFIG.dest.lng);
-      document.getElementById('home-dist').innerText = "あと " + Math.floor(d) + "m";
-      document.getElementById('home-arrow').style.transform = `rotate(${b}deg)`;
-    }, null, {enableHighAccuracy:true});
-  }
+function initGPS() {
+  if(!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(pos => {
+    const d = getDist(pos.coords.latitude, pos.coords.longitude, CONFIG.dest.lat, CONFIG.dest.lng);
+    const b = getBear(pos.coords.latitude, pos.coords.longitude, CONFIG.dest.lat, CONFIG.dest.lng);
+    document.getElementById('home-dist').innerText = "あと " + Math.floor(d) + "m";
+    document.getElementById('arrow-icon').style.transform = `rotate(${b}deg)`;
+  }, null, {enableHighAccuracy:true});
 }
 function getDist(la1, lo1, la2, lo2) {
   const R = 6371000, dLat = (la2-la1)*Math.PI/180, dLon = (lo2-lo1)*Math.PI/180;
@@ -200,25 +218,25 @@ function getBear(la1, lo1, la2, lo2) {
   return (Math.atan2(y, x)*180/Math.PI + 360) % 360;
 }
 
-// QR
-let qrStream = null;
+// QRコード
+let stream = null;
 async function startQR() {
   try {
-    qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-    const video = document.getElementById('qr-video');
-    video.srcObject = qrStream; video.play();
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    const v = document.getElementById('qr-video');
+    v.srcObject = stream; v.play();
     requestAnimationFrame(scanLoop);
-  } catch(e) { alert("カメラを許可してください"); }
+  } catch(e) { alert("カメラの使用を許可してください"); }
 }
-function stopQR() { if(qrStream) qrStream.getTracks().forEach(t => t.stop()); }
+function stopQR() { if(stream) stream.getTracks().forEach(t => t.stop()); stream = null; }
 function scanLoop() {
-  const video = document.getElementById('qr-video');
-  const canvas = document.getElementById('qr-canvas');
-  if(video && video.readyState === video.HAVE_ENOUGH_DATA && document.getElementById('page-scan').classList.contains('active')) {
-    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
+  const v = document.getElementById('qr-video');
+  const c = document.getElementById('qr-canvas');
+  if(v.readyState === v.HAVE_ENOUGH_DATA && stream) {
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(v, 0, 0, c.width, c.height);
+    const code = jsQR(ctx.getImageData(0,0,c.width,c.height).data, c.width, c.height);
     if(code) {
       const b = CONFIG.booths.find(x => x.id === code.data);
       if(b) { addStamp(b.id); return; }
@@ -228,33 +246,33 @@ function scanLoop() {
 }
 
 function addStamp(id) {
-  if(!data.stamps[id]) {
-    data.stamps[id] = new Date().toISOString();
-    data.tickets[id] = { num: "ZEN-" + Math.floor(1000 + Math.random()*9000), sec: id + "-" + Math.random().toString(36).slice(-4).toUpperCase() };
-    localStorage.setItem(CONFIG.storageKey, JSON.stringify(data));
-    alert("スタンプと抽選券を獲得！"); navigate('stamps');
+  if(!state.stamps[id]) {
+    state.stamps[id] = new Date().toISOString();
+    state.tickets[id] = { num: "ZEN-" + Math.floor(1000 + Math.random()*9000), sec: id + "-" + Math.random().toString(36).slice(-4).toUpperCase() };
+    localStorage.setItem(CONFIG.key, JSON.stringify(state));
+    alert("スタンプを獲得しました！"); navigate('stamps');
   }
 }
 document.querySelector('#ar-marker').addEventListener('markerFound', () => addStamp("b3"));
 
 function renderStamps() {
   document.getElementById('stamp-grid').innerHTML = CONFIG.booths.map(b => `
-    <div style="background:white; padding:15px; border-radius:10px; text-align:center; border:1px solid ${data.stamps[b.id]?'var(--blue)':'#eee'}">
-      <span style="font-size:30px; opacity:${data.stamps[b.id]?1:0.2}">${b.icon}</span><br>
+    <div style="background:white; padding:15px; border-radius:10px; text-align:center; border:1px solid ${state.stamps[b.id]?'var(--blue)':'#eee'}">
+      <span style="font-size:30px; opacity:${state.stamps[b.id]?1:0.1}">${b.icon}</span><br>
       <small style="font-weight:bold; font-size:10px;">${b.name}</small>
     </div>
   `).join('');
 }
 
 function renderTickets() {
-  const ids = Object.keys(data.stamps);
+  const ids = Object.keys(state.stamps);
   document.getElementById('ticket-list').innerHTML = ids.length ? ids.map(id => `
     <div style="background:white; border-radius:12px; margin-bottom:12px; border:2px solid var(--primary); overflow:hidden;">
-      <div style="background:var(--primary); color:white; padding:6px 12px; font-size:10px;">Owner: ${data.nickname}</div>
-      <div style="font-size:28px; font-weight:900; color:var(--primary); text-align:center; padding:15px 0;">${data.tickets[id].num}</div>
-      <div style="background:#f9f9f9; padding:5px; font-size:8px; color:#aaa; text-align:center;">照合: ${data.tickets[id].sec} | ${CONFIG.booths.find(x => x.id === id).name}</div>
+      <div style="background:var(--primary); color:white; padding:6px 12px; font-size:10px;">Owner: ${state.nickname}</div>
+      <div style="font-size:28px; font-weight:900; color:var(--primary); text-align:center; padding:15px 0;">${state.tickets[id].num}</div>
+      <div style="background:#f9f9f9; padding:5px; font-size:8px; color:#aaa; text-align:center;">照合: ${state.tickets[id].sec} | ${CONFIG.booths.find(x => x.id === id).name}</div>
     </div>
-  `).join('') : "<p style='text-align:center; color:#999; margin-top:40px;'>スタンプを集めてください</p>";
+  `).join('') : "<p style='text-align:center; color:#999; margin-top:40px;'>スタンプを集めると<br>ここに抽選券が表示されます</p>";
 }
 </script>
 </body>
